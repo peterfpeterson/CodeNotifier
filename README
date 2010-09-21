@@ -1,2 +1,5 @@
 This program is used for sending posts to twitter. It is being
 specialized for sending notification of svn/trac changes.
+
+To use this you need to install 'simplejson' and 'oauth2' which are
+both available 'easy_install'.
