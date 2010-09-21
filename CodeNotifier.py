@@ -75,10 +75,11 @@ class BitlyUrl:
         return len(self.shorturl)
 
 class StatusMsg:
-    def __init__(self, status, consumer_key=r'pfAHwsfJxkyzR25oLw13VQ',
-                 consumer_secret=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c'):
-        self.__consumer_key = consumer_key
-        self.__consumer_secret = consumer_secret
+    def __init__(self, status, app_key=r'pfAHwsfJxkyzR25oLw13VQ',
+                 app_secret=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c',
+                 user_key=TWIT_TOKEN, user_secret=TWIT_SECRET):
+        self.__twitter = OAuthApi(app_key, app_secret, user_key, user_secret)
+
         self.msg = status
         self.__processLinks()
         self.__abbridgeMsg()
@@ -105,9 +106,7 @@ class StatusMsg:
         return self.msg
 
     def send(self):
-        twitter = OAuthApi(self.__consumer_key, self.__consumer_secret,
-                           TWIT_TOKEN, TWIT_SECRET)
-        print "%s \"%s\"" % (twitter.UpdateStatus(self.msg), self.msg)
+        return self.__twitter.UpdateStatus(self.msg)
 
 """
 twitter = OAuthApi(consumer_key, consumer_secret)
@@ -127,7 +126,7 @@ print("oauth_token_secret: " + access_token['oauth_token_secret'])
 """
 
 if __name__ == "__main__":
-    status = "xuy blah blah Rearranged commands for ProcessSNSRun chain. This resolves ticket #1026. "
+    status = "This is another test "
     tracurl = "https://flathead.ornl.gov/trac/TranslationService/ticket/1026"
     svnurl = "https://flathead.ornl.gov/trac/TranslationService/changeset/5050/"
 
