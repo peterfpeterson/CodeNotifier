@@ -1,11 +1,16 @@
 #!/usr/bin/env python
-from oauthtwitter import OAuthApi
 SVNLOOK = "/usr/bin/svnlook"
-FLATHEAD = "flathead"
+CONFIG_FILE = "CodeNotifier_config.py"
 
-from CodeNotifier_config import *
 def readConfig():
-    pass
+    import os
+    if os.path.exists(CONFIG_FILE):
+        execfile(CONFIG_FILE, __builtins__.globals())
+    else:
+        print "Cannot read configuration file", CONFIG_FILE
+        print "Please configure the application"
+        import sys
+        sys.exit(-1)
 
 class WebError(Exception):
     def __init__(self, message, code=None):
@@ -27,6 +32,8 @@ def fetchUrl(url):
     url_data = urllib.urlopen(url).read()
     import simplejson
     return simplejson.loads(url_data)
+
+FLATHEAD = "flathead"
 
 def getTags(links):
     if links is None:
@@ -81,9 +88,14 @@ APP_KEY=r'pfAHwsfJxkyzR25oLw13VQ'
 APP_SECRET=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c'
 
 class StatusMsg:
-    def __init__(self, status=None,
-                 app_key=APP_KEY, app_secret=APP_SECRET,
-                 user_key=TWIT_TOKEN, user_secret=TWIT_SECRET):
+    def __init__(self, status=None, **kwargs):
+        # get the various keys from the kwargs list
+        app_key = kwargs.get("app_key", APP_KEY)
+        app_secret = kwargs.get("app_secret", APP_SECRET)
+        user_key = kwargs.get("user_key", TWIT_TOKEN)
+        user_secret = kwargs.get("user_secret", TWIT_SECRET)
+
+        from oauthtwitter import OAuthApi
         self.__twitter = OAuthApi(app_key, app_secret, user_key, user_secret)
         if status is not None:
             self.setMsg(status)
@@ -245,7 +257,6 @@ def getToken():
 
 if __name__ == "__main__":
     readConfig()
-    print dir()
 
     import sys
     if sys.argv[1] == "svn":
