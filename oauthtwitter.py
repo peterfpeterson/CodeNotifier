@@ -33,7 +33,7 @@ AUTHORIZATION_URL = 'http://twitter.com/oauth/authorize'
 SIGNIN_URL = 'http://twitter.com/oauth/authenticate'
 
 
-class OAuthApi():
+class OAuthApi:
     def __init__(self, consumer_key, consumer_secret, token=None, token_secret=None):
     	if token and token_secret:
     		token = oauth.Token(token, token_secret)
