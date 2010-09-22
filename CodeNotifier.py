@@ -167,14 +167,26 @@ class SvnMsg(StatusMsg):
 class TracMsg(StatusMsg):
     def __init__(self, email_msg):
         text = email_msg.as_string()
+        result = []
+
+        # get all of the information
         author = self.__getAuthor(text)
-        url = self.__getUrl(text)
+        if len(author) > 0:
+            result.append(author)
         log = self.__getLog(text)
+        if len(log) > 0:
+            result.append(log)
+        url = self.__getUrl(text)
+        if len(url) > 0:
+            result.append(url)
         if len(url) <= 0 or FLATHEAD in url:
-            proj = self.__getProj(text)
+            result.append(self.__getProj(text))
+
+        # set the message
+        if len(result) > 0:
+            self.setMsg(' '.join(result))
         else:
-            proj = ''
-        self.setMsg(' '.join((author, log, url, proj)))
+            self.setMsg("")
 
     def __getAuthor(self, text):
         import re
@@ -225,6 +237,8 @@ class TracMsg(StatusMsg):
         answer = re.findall(r'Comment:\s+(.+)--', oneline)
         if len(answer) > 0:
             return self.__trimLog(answer[0])
+
+        return ""
 
     def __trimLog(self, text):
         return text.strip()
