@@ -2,15 +2,100 @@
 SVNLOOK = "/usr/bin/svnlook"
 CONFIG_FILE = "CodeNotifier_config.py"
 
-def readConfig():
+def readConfig(filename, errorout=True):
     import os
-    if os.path.exists(CONFIG_FILE):
-        execfile(CONFIG_FILE, __builtins__.globals())
+    if os.path.exists(filename):
+        execfile(filename, __builtins__.globals())
     else:
-        print "Cannot read configuration file", CONFIG_FILE
-        print "Please configure the application"
-        import sys
-        sys.exit(-1)
+        if errorout:
+            print "Cannot read configuration file", filename
+            print "Please configure the application"
+            import sys
+            sys.exit(-1)
+
+def getValueFromUser(config, key, query, default=None):
+    import sys
+
+    if config[key] is None or len(config[key]) <= 0:
+        if default is not None:
+            print "%s [%s] " % (query, default) ,
+        else:
+            print query, 
+
+        config[key] = sys.stdin.readline().strip()
+        if default is not None and len(config[key]) <= 0:
+            config[key] = default
+
+def generateConfig(filename):
+    # read the existing settings
+    readConfig(filename, False)
+    config = {}
+    try:
+        config['BITLY_USER'] = BITLY_USER
+    except NameError:
+        config['BITLY_USER'] = ''
+    try:
+        config['BITLY_KEY'] = BITLY_KEY
+    except NameError:
+        config['BITLY_KEY'] = ''
+    try:
+        config['TWIT_TOKEN'] = TWIT_TOKEN
+    except NameError:
+        config['TWIT_TOKEN'] = ''
+    try:
+        config['TWIT_SECRET'] = TWIT_SECRET
+    except NameError:
+        config['TWIT_SECRET'] = ''
+    try:
+        config['SVN_FS_ROOT'] = SVN_FS_ROOT
+    except NameError:
+        config['SVN_FS_ROOT'] = ''
+    try:
+        config['SVN_TRAC_FORMAT'] = SVN_TRAC_FORMAT
+    except NameError:
+        config['SVN_TRAC_FORMAT'] = ''
+
+    import sys
+
+    # get the bitly information
+    getValueFromUser(config, 'BITLY_USER', "bit.ly username: ")
+    getValueFromUser(config, 'BITLY_KEY',
+                     "api key from 'http://bit.ly/a/account': ")
+
+    # get the twitter information
+    from oauthtwitter import OAuthApi
+    twitter = OAuthApi(APP_KEY, APP_SECRET)
+    temp_creds = twitter.getRequestToken()
+    print "visit '%s' and write the pin:"
+    oauth_verifier = sys.stdin.readline().strip()
+    access_token = twitter.getAccessToken(temp_credentials, oauthverifier)
+    config['TWIT_TOKEN'] = access_token['oauth_token']
+    config['TWIT_SECRET'] = access_token['oauth_token_secret']
+    """
+twitter = OAuthApi(consumer_key, consumer_secret)
+    
+# Get the temporary credentials for our next few calls
+temp_credentials = twitter.getRequestToken()
+
+# User pastes this into their browser to bring back a pin number
+print(twitter.getAuthorizationURL(temp_credentials))
+
+# Get the pin # from the user and get our permanent credentials
+oauth_verifier = raw_input('What is the PIN? ')
+access_token = twitter.getAccessToken(temp_credentials, oauth_verifier)
+
+print("oauth_token: " + access_token['oauth_token'])
+print("oauth_token_secret: " + access_token['oauth_token_secret'])
+"""
+
+
+    # get the svn information
+    getValueFromUser(config, 'SVN_FS_ROOT', "Root directory for svn: ", '/svn/')
+    getValueFromUser(config, 'SVN_TRAC_FORMAT', "Format for trac svn urls: ",
+                    "http://trac.edgewall.org/changeset/%d")
+
+    print config
+
 
 class WebError(Exception):
     def __init__(self, message, code=None):
@@ -152,7 +237,10 @@ class SvnMsg(StatusMsg):
 
         author = self.svnlook(repos_fs, rev, "author")
         log = self.svnlook(repos_fs, rev, "log")
-        url = SVN_TRAC_FORMAT % (repos, int(rev))
+        if '%s' in SVN_TRAC_FORMAT:
+            url = SVN_TRAC_FORMAT % (repos, int(rev))
+        else:
+            url = SVN_TRAC_FORMAT % int(rev)
 
         if self.__refsTicket(log):
             self.setMsg("")
@@ -249,30 +337,13 @@ class TracMsg(StatusMsg):
         project = answer[-1].strip()
         return '#' + project.replace(' ', '')
 
-"""
-twitter = OAuthApi(consumer_key, consumer_secret)
-
-# Get the temporary credentials for our next few calls
-temp_credentials = twitter.getRequestToken()
-
-# User pastes this into their browser to bring back a pin number
-print(twitter.getAuthorizationURL(temp_credentials))
-
-# Get the pin # from the user and get our permanent credentials
-oauth_verifier = raw_input('What is the PIN? ')
-access_token = twitter.getAccessToken(temp_credentials, oauth_verifier)
-
-print("oauth_token: " + access_token['oauth_token'])
-print("oauth_token_secret: " + access_token['oauth_token_secret'])
-"""
-
-def getToken():
-    pass
-
 if __name__ == "__main__":
-    readConfig()
-
     import sys
+    if sys.argv[1] == "config":
+        generateConfig(CONFIG_FILE)
+        sys.exit(0)
+
+    readConfig(CONFIG_FILE)
     if sys.argv[1] == "svn":
         (repos, rev) = sys.argv[2:]
         msg = SvnMsg(repos, rev)
