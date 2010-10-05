@@ -67,35 +67,27 @@ def generateConfig(filename):
     from oauthtwitter import OAuthApi
     twitter = OAuthApi(APP_KEY, APP_SECRET)
     temp_creds = twitter.getRequestToken()
-    print "visit '%s' and write the pin:"
+    print "visit '%s' and write the pin:" % twitter.getAuthorizationURL(temp_creds)
     oauth_verifier = sys.stdin.readline().strip()
-    access_token = twitter.getAccessToken(temp_credentials, oauthverifier)
+    access_token = twitter.getAccessToken(temp_creds, oauth_verifier)
     config['TWIT_TOKEN'] = access_token['oauth_token']
     config['TWIT_SECRET'] = access_token['oauth_token_secret']
-    """
-twitter = OAuthApi(consumer_key, consumer_secret)
-    
-# Get the temporary credentials for our next few calls
-temp_credentials = twitter.getRequestToken()
-
-# User pastes this into their browser to bring back a pin number
-print(twitter.getAuthorizationURL(temp_credentials))
-
-# Get the pin # from the user and get our permanent credentials
-oauth_verifier = raw_input('What is the PIN? ')
-access_token = twitter.getAccessToken(temp_credentials, oauth_verifier)
-
-print("oauth_token: " + access_token['oauth_token'])
-print("oauth_token_secret: " + access_token['oauth_token_secret'])
-"""
-
 
     # get the svn information
     getValueFromUser(config, 'SVN_FS_ROOT', "Root directory for svn: ", '/svn/')
     getValueFromUser(config, 'SVN_TRAC_FORMAT', "Format for trac svn urls: ",
                     "http://trac.edgewall.org/changeset/%d")
 
-    print config
+    # write out the configuration
+    handle = open(filename, 'w')
+    keys = config.keys()
+    keys.sort()
+    for key in keys:
+        handle.write("%s='%s'\n" % (key, config[key]))
+    handle.write("def normalizeUser(user):\n")
+    handle.write("    return user\n")
+    handle.close()
+
 
 
 class WebError(Exception):
