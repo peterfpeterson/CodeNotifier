@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 SVNLOOK = "/usr/bin/svnlook"
 CONFIG_FILE = "CodeNotifier_config.py"
+VERSION = "1.0"
 
 def readConfig(filename, errorout=True):
     import os
@@ -191,6 +192,7 @@ class StatusMsg:
             return
         self.__processLinks()
         self.__abbridgeMsg()
+        self.msg = self.msg.strip()
         
     def __processLinks(self):
         import re
@@ -233,9 +235,13 @@ class SvnMsg(StatusMsg):
 
     def __getCommit(self, repos, rev):
         import os
+        if repos.startswith(SVN_FS_ROOT):
+            repos = repos.replace(SVN_FS_ROOT, '')
+            repos = os.path.split(repos)[-1]
         repos_fs = os.path.join(SVN_FS_ROOT, repos)
 
         author = self.svnlook(repos_fs, rev, "author")
+        author = normalizeUser(author)
         log = self.svnlook(repos_fs, rev, "log")
         if '%s' in SVN_TRAC_FORMAT:
             url = SVN_TRAC_FORMAT % (repos, int(rev))
@@ -260,7 +266,7 @@ class TracMsg(StatusMsg):
         # get all of the information
         author = self.__getAuthor(text)
         if len(author) > 0:
-            result.append(author)
+            result.append(normalizeUser(author))
         log = self.__getLog(text)
         if len(log) > 0:
             result.append(log)
@@ -338,20 +344,35 @@ class TracMsg(StatusMsg):
         return '#' + project.replace(' ', '')
 
 if __name__ == "__main__":
-    import sys
-    if sys.argv[1] == "config":
-        generateConfig(CONFIG_FILE)
+    import optparse
+    info = """Send messages to twitter based on svn and trac changes. There are three fundamental commands/modes:
+  [config] setup keys for posting to twitter
+  [svn] send messages based on svn updates
+  [trac] send messages based on trac ticket updates"""
+    parser = optparse.OptionParser("usage: %prog [command] <options>",
+                                   None, optparse.Option, VERSION, 'error',
+                                   info)
+    parser.add_option("", "--config", dest="config", default=CONFIG_FILE)
+    (options, args) = parser.parse_args()
+
+    if len(args) <= 0:
+        parser.error("Need to specify a command: config, svn, trac")
+
+    if "config" in args:
+        generateConfig(options.config)
+        import sys
         sys.exit(0)
 
-    readConfig(CONFIG_FILE)
-    if sys.argv[1] == "svn":
-        (repos, rev) = sys.argv[2:]
+    readConfig(options.config)
+    if args[0] == "svn":
+        (repos, rev) = args[1:]
         msg = SvnMsg(repos, rev)
-    elif sys.argv[1] == "trac":
+    elif args[0] == "trac":
         import email
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(email_msg)
     else:
-        print "need to specify either 'svn' or 'trac' as mode"
-        sys.exit(-1)
+        parser.error("need to specify either 'svn' or 'trac' as mode")
+
     print msg
+    #msg.send()
