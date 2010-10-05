@@ -366,5 +366,5 @@ if __name__ == "__main__":
     else:
         parser.error("need to specify either 'svn' or 'trac' as mode")
 
-    print msg
-    #msg.send()
+    #print msg
+    msg.send()
