@@ -361,6 +361,7 @@ if __name__ == "__main__":
         msg = SvnMsg(repos, rev)
     elif args[0] == "trac":
         import email
+	import sys
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(email_msg)
     else:
