@@ -251,7 +251,8 @@ class SvnMsg(StatusMsg):
         return len(tickets) > 0
 
 class TracMsg(StatusMsg):
-    def __init__(self, email_msg):
+    def __init__(self, email_msg, **kwargs):
+        StatusMsg.__init__(self, **kwargs)
         text = email_msg.as_string()
         result = []
 
