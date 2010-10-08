@@ -125,9 +125,9 @@ def getTags(links):
             stop = link.index(r'/', start)
             tags.append("#%s" % link[start:stop])
         if "ticket" in link:
-            tags.append("#trac")
+            tags.append("trac")
         if "changeset" in link:
-            tags.append("#svn")
+            tags.append("svn")
     return ' '.join(tags)
 
 class BitlyUrl:
