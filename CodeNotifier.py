@@ -113,11 +113,10 @@ def fetchUrl(url):
 
 FLATHEAD = "flathead"
 
-def getTags(links):
+def getTags(links, tags=[]):
     if links is None:
         return []
     links = [link.longurl for link in links]
-    tags = []
     for link in links:
         if FLATHEAD in link:
             TRAC = r'/trac'
@@ -131,12 +130,16 @@ def getTags(links):
     return ' '.join(tags)
 
 class BitlyUrl:
-    def __init__(self, longurl):
+    def __init__(self, longurl, debug=0):
+        self.debug = debug
         if longurl is None or len(longurl) <= 0:
             raise RuntimeError("Cannot shorten empty string")
         self.longurl = longurl
         self.shorturl = self.__shortenUrl()
     def __shortenUrl(self):
+        if self.debug > 1:
+            return self.longurl
+
         resturl = composeUrl("http://api.bit.ly/v3/shorten?",
                              {"longUrl":self.longurl,
                               "format":"json",
@@ -168,6 +171,7 @@ APP_SECRET=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c'
 class StatusMsg:
     def __init__(self, status=None, **kwargs):
         # get the various keys from the kwargs list
+        self.debug = kwargs.get('debug', 0)
         app_key = kwargs.get("app_key", APP_KEY)
         app_secret = kwargs.get("app_secret", APP_SECRET)
         user_key = kwargs.get("user_key", TWIT_TOKEN)
@@ -178,21 +182,21 @@ class StatusMsg:
         if status is not None:
             self.setMsg(status)
 
-    def setMsg(self, status):
+    def setMsg(self, status, tags=[]):
         self.msg = status
         if len(self.msg) <= 0:
             return
-        self.__processLinks()
+        self.__processLinks(tags)
         self.__abbridgeMsg()
         self.msg = self.msg.strip()
         
-    def __processLinks(self):
+    def __processLinks(self, tags):
         import re
         self.links = re.findall(r'https?://.+$', self.msg)
-        self.links = [BitlyUrl(link) for link in self.links]
+        self.links = [BitlyUrl(link, debug=self.debug) for link in self.links]
         for link in self.links:
             self.msg = self.msg.replace(link.longurl, link.shorturl)
-        self.tags = getTags(self.links)
+        self.tags = getTags(self.links, tags)
         self.msg = ' '.join((self.msg, self.tags))
 
     def __abbridgeMsg(self):
@@ -253,7 +257,8 @@ class SvnMsg(StatusMsg):
 class TracMsg(StatusMsg):
     def __init__(self, email_msg, **kwargs):
         StatusMsg.__init__(self, **kwargs)
-        text = email_msg.as_string()
+        self.__email_msg = email_msg
+        text = self.__getEmailBody(email_msg)
         result = []
 
         # get all of the information
@@ -268,12 +273,28 @@ class TracMsg(StatusMsg):
             result.append(url)
         if len(url) <= 0 or FLATHEAD in url:
             result.append(self.__getProj(text))
+        ticket = self.__getTicket(url)
+        if ticket is not None and ticket not in log:
+            ticket = [ticket]
+        else:
+            ticket = []
 
         # set the message
         if len(result) > 0:
-            self.setMsg(' '.join(result))
+            self.setMsg(' '.join(result), ticket)
         else:
             self.setMsg("")
+
+    def __getEmailBody(self, email_msg):
+        encoding = email_msg.get('Content-Transfer-Encoding',
+                                 'quoted-printable')
+        if encoding == 'quoted-printable':
+            return email_msg.as_string()
+        elif encoding == "base64":
+            import base64
+            return base64.decodestring(email_msg.get_payload())
+        else:
+            raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
     def __getAuthor(self, text):
         import re
@@ -288,24 +309,39 @@ class TracMsg(StatusMsg):
         if len(answer) > 0:
             return answer[0].strip()
 
+        # see if there is an owner 
+        answer = re.findall(r'Owner:\s+Type:', text)
+        if len(answer) > 0:
+            answer = re.findall(r'Reporter:\s*(.+)\|', text)
+            if len(answer) > 0:
+                return answer[0].strip()
+            else:
+                return ""
+
         # now the person that owns it
         answer = re.findall(r'\s+Owner:\s*(.+)', text)
         if len(answer) > 0:
             return answer[0].strip()
-        
+
         return ""
 
     def __getUrl(self, text):
-        import re
-        answer = re.findall(r'Ticket URL:\s+<(.+)>', text)
-        if len(answer) <= 0:
-            return ""
-        link = answer[0]
+        # try to get it from the header
+        link = self.__email_msg.get("x-trac-ticket-url", None)
 
-        # drop the link to the comment
-        if '#' in link:
+        if link is None:
+            import re
+            answer = re.findall(r'Ticket URL:\s+<(.+)>', text)
+            if len(answer) <= 0:
+                return ""
+            link = answer[0]
+        else:
+            link = link.strip()
+
+        # drop the link to the comment - not so useful
+        '''if '#' in link:
             stop = link.index('#')
-            link = link[:stop]
+            link = link[:stop]'''
 
         # format the link
         if link.startswith("http"):
@@ -317,6 +353,15 @@ class TracMsg(StatusMsg):
         import re
         oneline = re.sub(r'\s+', ' ', text)
 
+        # look for new
+        answer = re.findall(r'\|\s+Status:\s+new\s+', oneline)
+        if len(answer) > 0:
+            answer = text.split('\n')
+            if len(answer) <= 0:
+                return ""
+            return self.__trimLog(answer[0])
+
+        # different kinds of comments
         answer = re.findall(r'Comment.*\(.+\):\s+(.+)--', oneline)
         if len(answer) > 0:
             return self.__trimLog(answer[0])
@@ -325,16 +370,39 @@ class TracMsg(StatusMsg):
         if len(answer) > 0:
             return self.__trimLog(answer[0])
 
+        # just a change in status
+        answer = re.findall(r'status:\s(.+)\*', oneline)
+        if len(answer) > 0:
+            return self.__trimLog(answer[0])
+
         return ""
 
     def __trimLog(self, text):
-        return text.strip()
+        if text is None:
+            return ""
+        else:
+            return text.strip()
 
     def __getProj(self, text):
         import re
         answer = re.findall(r'(.+\s+)<.*>', text)
         project = answer[-1].strip()
         return '#' + project.replace(' ', '')
+
+    def __getTicket(self, url):
+        # find it from the message header
+        ticket = self.__email_msg.get('x-trac-ticket-id', None)
+        if ticket is not None:
+            return "#%s" % ticket.strip()
+
+        # find it from the ticket url
+        import re
+        answer = re.findall(r'/ticket/(\d+)#?.*', url)
+        if len(answer) > 0:
+            return "#%s" % answer[0]
+
+        # give up
+        return None
 
 if __name__ == "__main__":
     import optparse
@@ -346,6 +414,7 @@ if __name__ == "__main__":
                                    None, optparse.Option, VERSION, 'error',
                                    info)
     parser.add_option("", "--config", dest="config", default=CONFIG_FILE)
+    parser.add_option("", "--debug", dest="debug", action="count", default=0)
     (options, args) = parser.parse_args()
 
     if len(args) <= 0:
@@ -359,7 +428,7 @@ if __name__ == "__main__":
     readConfig(options.config)
     if args[0] == "svn":
         (repos, rev) = args[1:]
-        msg = SvnMsg(repos, rev)
+        msg = SvnMsg(repos, rev, debug=options.debug)
     elif args[0] == "trac":
         import email
 	import sys
@@ -368,5 +437,7 @@ if __name__ == "__main__":
     else:
         parser.error("need to specify either 'svn' or 'trac' as mode")
 
-    #print msg
-    msg.send()
+    if options.debug:
+        print msg
+    else:
+        msg.send()
