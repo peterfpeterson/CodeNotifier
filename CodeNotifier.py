@@ -108,6 +108,8 @@ def composeUrl(base, params):
 def fetchUrl(url):
     import urllib
     url_data = urllib.urlopen(url).read()
+    if url_data == None or len(url_data) <= 0:
+        raise WebError("URL read failed to return anything")
     import simplejson
     return simplejson.loads(url_data)
 
@@ -293,6 +295,8 @@ class TracMsg(StatusMsg):
         elif encoding == "base64":
             import base64
             return base64.decodestring(email_msg.get_payload())
+        elif encoding == "7bit":
+            return email_msg.as_string()
         else:
             raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
