@@ -413,7 +413,8 @@ if __name__ == "__main__":
     info = """Send messages to twitter based on svn and trac changes. There are three fundamental commands/modes:
   [config] setup keys for posting to twitter
   [svn] send messages based on svn updates
-  [trac] send messages based on trac ticket updates"""
+  [trac] send messages based on trac ticket updates
+  [text] send the rest of the command line as a twitter notification"""
     parser = optparse.OptionParser("usage: %prog [command] <options>",
                                    None, optparse.Option, VERSION, 'error',
                                    info)
@@ -438,6 +439,8 @@ if __name__ == "__main__":
 	import sys
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(email_msg)
+    elif args[0] == "text":
+        msg = StatusMsg(' '.join(args[1:]))
     else:
         parser.error("need to specify either 'svn' or 'trac' as mode")
 
