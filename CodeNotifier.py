@@ -271,7 +271,7 @@ class TracMsg(StatusMsg):
             result.append(normalizeUser(author))
         log = self.__getLog(text)
         if "(localhost[127.0.0.1])" in log:
-            raise RuntimeError("Log looks odd:" + log)
+            log = ""
         if len(log) > 0:
             result.append(log)
         url = self.__getUrl(text)
