@@ -270,7 +270,7 @@ class TracMsg(StatusMsg):
         if len(author) > 0:
             result.append(normalizeUser(author))
         log = self.__getLog(text)
-        if "(localhost [127.0.0.1])" in log:
+        if " [127.0.0.1])" in log:
             log = ""
         if len(log) > 0:
             result.append(log)
