@@ -299,6 +299,8 @@ class TracMsg(StatusMsg):
             return base64.decodestring(email_msg.get_payload())
         elif encoding == "7bit":
             return email_msg.as_string()
+        elif encoding == "8bit":
+            return email_msg.as_string()
         else:
             raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
@@ -365,7 +367,7 @@ class TracMsg(StatusMsg):
             answer = text.split('\n')[:-1]
             if len(answer) <= 0:
                 return ""
-            return self.__trimLog(answer[-1])
+            return "new " + self.__trimLog(answer[-1])
 
         # different kinds of comments
         answer = re.findall(r'Comment.*\(.+\):\s+(.+)--', oneline)
