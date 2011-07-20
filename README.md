@@ -28,5 +28,4 @@ something like `twit_trac_submit@mymachinename.net`.
 
 3. Create a file `/usr/local/bin/twit_trac.sh` with the contents:
 
-    #!/bin/sh
     cat - | /usr/local/bin/CodeNotifier.py --config /usr/local/bin/CodeNotifier_config.py trac
