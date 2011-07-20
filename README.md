@@ -9,8 +9,9 @@ SVN
 To use the svn mode add the following (or something like it) to your 
 post-commit:
 
->    TWIT_HOOK="/usr/local/bin/CodeNotifier.py"
->    "$TWIT_HOOK" --config /home/svn/CodeNotifier_config.py svn "$REPOS" "$REV"
+<pre><code>TWIT_HOOK="/usr/local/bin/CodeNotifier.py"
+"$TWIT_HOOK" --config /home/svn/CodeNotifier_config.py svn "$REPOS" "$REV"
+</code></pre>
 
 This will do nothing if it thinks the trac hook will fire.
 
