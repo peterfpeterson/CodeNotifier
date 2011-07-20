@@ -4,8 +4,18 @@ specialized for sending notification of svn/trac changes.
 To use this you need to install `simplejson` and `oauth2` which are
 both available `easy_install` or through many of the standard package managers.
 
+Setup
+=====
+Run `CodeNotifier.py config` and follow the prompts to create a configuration 
+file. For the usage below it is assumed to be 
+named `/home/svn/CodeNotifier_config.py`.
+
+Usage
+=====
+First you need to make sure `simplejson` and `oauth2` are installed.
+
 SVN
-===
+---
 To use the svn mode add the following (or something like it) to your 
 post-commit:
 
@@ -16,7 +26,7 @@ post-commit:
 This will do nothing if it thinks the trac hook will fire.
 
 TRAC
-====
+----
 The trac mode is a bit harder to configure, but here are the tips to making 
 it work.
 
