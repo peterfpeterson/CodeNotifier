@@ -360,10 +360,12 @@ class TracMsg(StatusMsg):
         # look for new
         answer = re.findall(r'\|\s+Status:\s+new\s+', oneline)
         if len(answer) > 0:
-            answer = text.split('\n')
+            index = text.index("-------+-----")
+            text = text[:index]
+            answer = text.split('\n')[:-1]
             if len(answer) <= 0:
                 return ""
-            return self.__trimLog(answer[0])
+            return self.__trimLog(answer[-1])
 
         # different kinds of comments
         answer = re.findall(r'Comment.*\(.+\):\s+(.+)--', oneline)
