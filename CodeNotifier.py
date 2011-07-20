@@ -205,9 +205,7 @@ class StatusMsg:
         '''This assumes that nothing compresible comes after the first link.'''
         if len(self.msg) < 140: # no need to shorten
             return
-        print "01:", self.msg
         index = self.msg.index(r'http://bit.ly/')
-        print "02:", index # REMOVE
         (msg, incomp) = (self.msg[:index].strip(), self.msg[index:].strip())
         msg = msg[:140-len(incomp)-1].strip()
         self.msg = "%s %s" % (msg, incomp)
