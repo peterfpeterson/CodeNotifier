@@ -22,11 +22,14 @@ it work.
 
 1. Add a line to `/etc/aliases`
 
->    twit_trac_submit: "|/usr/local/bin/twit_trac.sh"
+<pre><code>twit_trac_submit: "|/usr/local/bin/twit_trac.sh"
+</code></pre>
 
 2. Add that email address to your `smtp_always_cc` in your `conf/trac.ini` as 
 something like `twit_trac_submit@mymachinename.net`.
 
 3. Create a file `/usr/local/bin/twit_trac.sh` with the contents:
 
->    cat - | /usr/local/bin/CodeNotifier.py --config /usr/local/bin/CodeNotifier_config.py trac
+<pre><code>#!/bin/sh
+cat - | /usr/local/bin/CodeNotifier.py --config /usr/local/bin/CodeNotifier_config.py trac
+</code></pre>
