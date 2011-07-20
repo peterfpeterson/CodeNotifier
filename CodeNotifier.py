@@ -3,6 +3,8 @@ SVNLOOK = "/usr/bin/svnlook"
 CONFIG_FILE = "CodeNotifier_config.py"
 VERSION = "1.0"
 
+import re
+
 def readConfig(filename, errorout=True):
     import os
     if os.path.exists(filename):
@@ -193,7 +195,6 @@ class StatusMsg:
         self.msg = self.msg.strip()
         
     def __processLinks(self, tags):
-        import re
         self.links = re.findall(r'https?://.+$', self.msg)
         self.links = [BitlyUrl(link, debug=self.debug) for link in self.links]
         for link in self.links:
@@ -252,7 +253,6 @@ class SvnMsg(StatusMsg):
             self.setMsg(" ".join((author, log, url)))
 
     def __refsTicket(self, log):
-        import re
         tickets = re.findall(r'#\d+', log)
         return len(tickets) > 0
 
@@ -303,8 +303,6 @@ class TracMsg(StatusMsg):
             raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
     def __getAuthor(self, text):
-        import re
-
         # first look for a changeset
         answer = re.findall(r'Changes\s*\(by\s*(.+)\)', text)
         if len(answer) > 0:
@@ -336,7 +334,6 @@ class TracMsg(StatusMsg):
         link = self.__email_msg.get("x-trac-ticket-url", None)
 
         if link is None:
-            import re
             answer = re.findall(r'Ticket URL:\s+<(.+)>', text)
             if len(answer) <= 0:
                 return ""
@@ -352,11 +349,12 @@ class TracMsg(StatusMsg):
         # format the link
         if link.startswith("http"):
             return link
+        elif link.startswith("hxxp"):
+            return link.replace("hxxp", "http", 1)
         else:
             return ""
 
     def __getLog(self, text):
-        import re
         oneline = re.sub(r'\s+', ' ', text)
 
         # look for new
@@ -386,11 +384,19 @@ class TracMsg(StatusMsg):
     def __trimLog(self, text):
         if text is None:
             return ""
-        else:
-            return text.strip()
+
+        text = text.strip()
+        START = "{{{ #!CommitTicketReference"
+        MID = 'revision="'
+        STOP = "}}}"
+        if START in text and MID in text and STOP in text:
+            expression = '(.+)\s+%s.+%s.+"\s+(.+)\s+%s' % (START, MID, STOP)
+            match = re.match(expression, text)
+            text = ' '.join(match.groups())
+
+        return text.strip()
 
     def __getProj(self, text):
-        import re
         answer = re.findall(r'(.+\s+)<.*>', text)
         project = answer[-1].strip()
         return '#' + project.replace(' ', '')
@@ -402,7 +408,6 @@ class TracMsg(StatusMsg):
             return "#%s" % ticket.strip()
 
         # find it from the ticket url
-        import re
         answer = re.findall(r'/ticket/(\d+)#?.*', url)
         if len(answer) > 0:
             return "#%s" % answer[0]
