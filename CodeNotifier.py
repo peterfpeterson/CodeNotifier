@@ -419,10 +419,27 @@ class TracMsg(StatusMsg):
         # give up
         return None
 
+class NagiosMsg(StatusMsg):
+    def __init__(self, email_msg, **kwargs):
+        StatusMsg.__init__(self, **kwargs)
+        if 'Subject' in email_msg.keys():
+            subject = self.__getSubject(email_msg['Subject'])
+        else:
+            subject = ""
+        self.setMsg(subject)
+
+    def __getSubject(self, subject):
+        subject = subject.strip()
+        subject = re.sub(r'\s*\*+\s*', '', subject)
+        subject = re.sub(r'\s+alert\s+-', ':', subject)
+
+        return subject.strip()
+
 if __name__ == "__main__":
     import optparse
     info = """Send messages to twitter based on svn and trac changes. There are three fundamental commands/modes:
   [config] setup keys for posting to twitter
+  [nagois] send message based on nagios update emails
   [svn] send messages based on svn updates
   [trac] send messages based on trac ticket updates
   [text] send the rest of the command line as a twitter notification"""
@@ -450,6 +467,11 @@ if __name__ == "__main__":
 	import sys
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(email_msg)
+    elif args[0] == "nagios":
+        import email
+	import sys
+        email_msg = email.message_from_file(sys.stdin)
+        msg = NagiosMsg(email_msg)
     elif args[0] == "text":
         msg = StatusMsg(' '.join(args[1:]))
     else:
