@@ -3,7 +3,9 @@ SVNLOOK = "/usr/bin/svnlook"
 CONFIG_FILE = "CodeNotifier_config.py"
 VERSION = "1.0"
 
+import email
 import re
+import sys
 
 def readConfig(filename, errorout=True):
     import os
@@ -13,12 +15,9 @@ def readConfig(filename, errorout=True):
         if errorout:
             print "Cannot read configuration file", filename
             print "Please configure the application"
-            import sys
             sys.exit(-1)
 
 def getValueFromUser(config, key, query, default=None):
-    import sys
-
     if config[key] is None or len(config[key]) <= 0:
         if default is not None:
             print "%s [%s] " % (query, default) ,
@@ -57,8 +56,6 @@ def generateConfig(filename):
         config['SVN_TRAC_FORMAT'] = SVN_TRAC_FORMAT
     except NameError:
         config['SVN_TRAC_FORMAT'] = ''
-
-    import sys
 
     # get the bitly information
     getValueFromUser(config, 'BITLY_USER', "bit.ly username: ")
@@ -451,14 +448,13 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     modes_error="Need to specify a command: 'config', 'nagios', 'svn', " \
-                + "'trac', or 'text'"
+                + "'text', 'ts', or 'trac'"
 
     if len(args) <= 0:
         parser.error(modes_error)
 
     if "config" in args:
         generateConfig(options.config)
-        import sys
         sys.exit(0)
 
     readConfig(options.config)
@@ -466,17 +462,16 @@ if __name__ == "__main__":
         (repos, rev) = args[1:]
         msg = SvnMsg(repos, rev, debug=options.debug)
     elif args[0] == "trac":
-        import email
-	import sys
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(email_msg)
     elif args[0] == "nagios":
-        import email
-	import sys
         email_msg = email.message_from_file(sys.stdin)
         msg = NagiosMsg(email_msg)
     elif args[0] == "text":
         msg = StatusMsg(' '.join(args[1:]))
+    elif args[0] == "ts":
+        email_msg = email.message_from_file(sys.stdin)
+        msg = email_msg['Subject']
     else:
         parser.error(modes_error + " (found '" + args[0] + "')")
 
