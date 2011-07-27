@@ -450,8 +450,11 @@ if __name__ == "__main__":
     parser.add_option("", "--debug", dest="debug", action="count", default=0)
     (options, args) = parser.parse_args()
 
+    modes_error="Need to specify a command: 'config', 'nagios', 'svn', " \
+                + "'trac', or 'text'"
+
     if len(args) <= 0:
-        parser.error("Need to specify a command: config, svn, trac")
+        parser.error(modes_error)
 
     if "config" in args:
         generateConfig(options.config)
@@ -475,7 +478,7 @@ if __name__ == "__main__":
     elif args[0] == "text":
         msg = StatusMsg(' '.join(args[1:]))
     else:
-        parser.error("need to specify either 'svn' or 'trac' as mode")
+        parser.error(modes_error + " (found '" + args[0] + "')")
 
     if options.debug:
         print msg
