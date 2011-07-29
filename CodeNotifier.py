@@ -253,11 +253,36 @@ class SvnMsg(StatusMsg):
         tickets = re.findall(r'#\d+', log)
         return len(tickets) > 0
 
-class TracMsg(StatusMsg):
+class EmailMsg(StatusMsg):
     def __init__(self, email_msg, **kwargs):
         StatusMsg.__init__(self, **kwargs)
-        self.__email_msg = email_msg
-        text = self.__getEmailBody(email_msg)
+        self.__email_msg__ = email_msg
+
+    def getSubject(self):
+        if 'Subject' in self.__email_msg__.keys():
+            return self.__email_msg__['Subject'].strip()
+        else:
+            return ""
+
+    def getEmailBody(self):
+        encoding = self.__email_msg__.get('Content-Transfer-Encoding',
+                                          'quoted-printable')
+        if encoding == 'quoted-printable':
+            return email_msg.as_string()
+        elif encoding == "base64":
+            import base64
+            return base64.decodestring(email_msg.get_payload())
+        elif encoding == "7bit":
+            return email_msg.as_string()
+        elif encoding == "8bit":
+            return email_msg.as_string()
+        else:
+            raise RuntimeError("Failed to understand encoding '%s'" % encoding)
+
+class TracMsg(EmailMsg):
+    def __init__(self, email_msg, **kwargs):
+        EmailMsg.__init__(self, email_msg, **kwargs)
+        text = self.getEmailBody()
         result = []
 
         # get all of the information
@@ -285,21 +310,6 @@ class TracMsg(StatusMsg):
             self.setMsg(' '.join(result), ticket)
         else:
             self.setMsg("")
-
-    def __getEmailBody(self, email_msg):
-        encoding = email_msg.get('Content-Transfer-Encoding',
-                                 'quoted-printable')
-        if encoding == 'quoted-printable':
-            return email_msg.as_string()
-        elif encoding == "base64":
-            import base64
-            return base64.decodestring(email_msg.get_payload())
-        elif encoding == "7bit":
-            return email_msg.as_string()
-        elif encoding == "8bit":
-            return email_msg.as_string()
-        else:
-            raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
     def __getAuthor(self, text):
         # first look for a changeset
@@ -330,7 +340,7 @@ class TracMsg(StatusMsg):
 
     def __getUrl(self, text):
         # try to get it from the header
-        link = self.__email_msg.get("x-trac-ticket-url", None)
+        link = self.__email_msg__.get("x-trac-ticket-url", None)
 
         if link is None:
             answer = re.findall(r'Ticket URL:\s+<(.+)>', text)
@@ -404,7 +414,7 @@ class TracMsg(StatusMsg):
 
     def __getTicket(self, url):
         # find it from the message header
-        ticket = self.__email_msg.get('x-trac-ticket-id', None)
+        ticket = self.__email_msg__.get('x-trac-ticket-id', None)
         if ticket is not None:
             return "#%s" % ticket.strip()
 
@@ -416,21 +426,47 @@ class TracMsg(StatusMsg):
         # give up
         return None
 
-class NagiosMsg(StatusMsg):
+class NagiosMsg(EmailMsg):
     def __init__(self, email_msg, **kwargs):
-        StatusMsg.__init__(self, **kwargs)
-        if 'Subject' in email_msg.keys():
-            subject = self.__getSubject(email_msg['Subject'])
-        else:
-            subject = ""
-        self.setMsg(subject)
+        EmailMsg.__init__(self, email_msg, **kwargs)
+        self.setMsg(self.__getSubject())
 
-    def __getSubject(self, subject):
-        subject = subject.strip()
+    def __getSubject(self):
+        subject = self.getSubject().strip()
         subject = re.sub(r'\s*\*+\s*', '', subject)
         subject = re.sub(r'\s+alert\s+-', ':', subject)
 
         return subject.strip()
+
+class TsMsg(EmailMsg):
+    def __init__(self, email_msg, **kwargs):
+        EmailMsg.__init__(self, email_msg, **kwargs)
+
+        # deal with the subject line
+        log = self.__parseSubject()
+
+        if len(log) <= 0:
+            log = self.__parseBody(email_msg)
+
+        self.setMsg(log)
+
+    def __parseSubject(self):
+        subject = self.getSubject().strip()
+        if len(subject.strip()) <= 0:
+            return ""
+
+        # verify it is an existance one
+        if not (subject.endswith("Does not exist") or \
+                subject.endswith("Exists")):
+            return ""
+
+        # format and return
+        subject = re.sub(r'\[.+\]\s+', '', subject)
+        subject = subject.lower()
+        return subject
+
+    def __parseBody(self, email_msg):
+        return ""
 
 if __name__ == "__main__":
     import optparse
@@ -471,7 +507,7 @@ if __name__ == "__main__":
         msg = StatusMsg(' '.join(args[1:]))
     elif args[0] == "ts":
         email_msg = email.message_from_file(sys.stdin)
-        msg = email_msg['Subject']
+        msg = TsMsg(email_msg)
     else:
         parser.error(modes_error + " (found '" + args[0] + "')")
 
