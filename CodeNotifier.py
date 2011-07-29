@@ -443,6 +443,7 @@ class TsMsg(EmailMsg):
         EmailMsg.__init__(self, email_msg, **kwargs)
 
         # deal with the subject line
+        self.__host = ""
         log = self.__parseSubject()
 
         if len(log) <= 0:
@@ -458,6 +459,7 @@ class TsMsg(EmailMsg):
         # verify it is an existance one
         if not (subject.endswith("Does not exist") or \
                 subject.endswith("Exists")):
+            self.__host = re.sub(r'\[.+\]\s+', '', subject).strip()
             return ""
 
         # format and return
@@ -466,7 +468,35 @@ class TsMsg(EmailMsg):
         return subject
 
     def __parseBody(self, email_msg):
-        return ""
+        body = self.getEmailBody()
+        formatstr = "%s failed on %s"
+
+        # try to find TranslationError
+        ts_error = re.findall(r'TranslationError:.+$', body, re.MULTILINE)
+        if len(ts_error) > 0:
+            ts_error = ts_error[0] # just use the first
+            ts_error = ts_error.replace("TranslationError:", "")
+            return formatstr % (ts_error.strip(), self.__host)
+
+        # try to find all versions of SNSlocal in the string
+        localrefs = re.findall(r'/SNSlocal/\S+', body, flags=re.MULTILINE)
+        if len(localrefs) <= 0:
+            return ""
+        # remove quotation marks
+        localrefs = [item.replace('"', '') for item in localrefs]
+        localrefs = [item.replace("'", '') for item in localrefs]
+        # get unique list
+        localrefs = sorted(set(localrefs))
+        localrefs = localrefs[0]
+
+        # format the string
+        localrefs = localrefs.replace("SNSlocal", "SNS")
+        localrefs = localrefs.split("NeXus")[0]
+        localrefs = localrefs.replace("pre", "")
+        localrefs = localrefs[1:]
+        localrefs = localrefs[0:-1]
+
+        return formatstr % (localrefs, self.__host)
 
 if __name__ == "__main__":
     import optparse
