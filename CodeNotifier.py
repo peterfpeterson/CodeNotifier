@@ -443,13 +443,25 @@ class TsMsg(EmailMsg):
         EmailMsg.__init__(self, email_msg, **kwargs)
 
         # deal with the subject line
-        self.__host = ""
+        self.setHost()
         log = self.__parseSubject()
 
         if len(log) <= 0:
             log = self.__parseBody(email_msg)
 
         self.setMsg(log)
+
+    def setHost(self, host = ""):
+        host = host.strip()
+        if len(host) <= 0:
+            self.__host = ""
+            return
+
+        splitted = host.split('.')
+        if len(splitted) == 3:
+            self.__host = splitted[0]
+        else:
+            self.__host = host
 
     def __parseSubject(self):
         subject = self.getSubject().strip()
@@ -459,12 +471,17 @@ class TsMsg(EmailMsg):
         # verify it is an existance one
         if not (subject.endswith("Does not exist") or \
                 subject.endswith("Exists")):
-            self.__host = re.sub(r'\[.+\]\s+', '', subject).strip()
+            host = re.sub(r'\[.+\]\s+', '', subject).strip()
+            self.setHost(host)
             return ""
 
         # format and return
         subject = re.sub(r'\[.+\]\s+', '', subject)
         subject = subject.lower()
+        splitted = subject.split()
+        self.setHost(splitted[0])
+        subject = subject.replace(splitted[0], self.__host)
+
         return subject
 
     def __parseBody(self, email_msg):
