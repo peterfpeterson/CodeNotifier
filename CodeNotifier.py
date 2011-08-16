@@ -215,9 +215,9 @@ class StatusMsg:
         if (self.msg is not None) and (len(self.msg) > 0):
             try:
                 return self.__twitter.UpdateStatus(self.msg)
-            except HTTPError, e:
+            except:
                 print "MSG = '%s'" % self.msg
-                throw e
+                raise
 
 class SvnMsg(StatusMsg):
     def __init__(self, repos, rev, **kwargs):
