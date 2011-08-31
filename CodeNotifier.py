@@ -213,10 +213,11 @@ class StatusMsg:
 
     def send(self):
         if (self.msg is not None) and (len(self.msg) > 0):
+            import urllib2
             try:
                 return self.__twitter.UpdateStatus(self.msg)
-            except:
-                print "MSG = '%s'" % self.msg
+            except urllib2.HTTPError, e:
+                print "Update '%s' failed. Reason '%s'" % (self.msg, e.info)
                 raise
 
 class SvnMsg(StatusMsg):
@@ -439,6 +440,7 @@ class NagiosMsg(EmailMsg):
         subject = self.getSubject().strip()
         subject = re.sub(r'\s*\*+\s*', '', subject)
         subject = re.sub(r'\s+alert\s+-', ':', subject)
+        subject = re.sub('/', ' ', subject)
 
         return subject.strip()
 
