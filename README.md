@@ -43,3 +43,11 @@ something like `twit_trac_submit@mymachinename.net`.
 <pre><code>#!/bin/sh
 cat - | /usr/local/bin/CodeNotifier.py --config /usr/local/bin/CodeNotifier_config.py trac
 </code></pre>
+
+
+DEVELOPMENT / TESTING
+---------------------
+
+<pre><code>
+cat trac_msg4 | ./CodeNotifier.py trac --debug --config ./CodeNotifier_config.py
+</code></pre>
