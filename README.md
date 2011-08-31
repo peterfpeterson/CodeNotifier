@@ -46,7 +46,7 @@ cat - | /usr/local/bin/CodeNotifier.py --config /usr/local/bin/CodeNotifier_conf
 
 
 DEVELOPMENT / TESTING
----------------------
+=====================
 
 <pre><code>
 cat trac_msg4 | ./CodeNotifier.py trac --debug --config ./CodeNotifier_config.py
