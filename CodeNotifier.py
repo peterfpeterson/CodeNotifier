@@ -481,6 +481,7 @@ class NagiosMsg(EmailMsg):
         self.__host__ = getProperty(body, r'^Host:\s+(\w+)$')
         self.__state__ = getProperty(body, r'^State:\s+(\w+)$')
         self.__address__ = getProperty(body, r'^Address:\s+(\w+)$')
+        self.__time__ = getProperty(body, r'^Date/Time:\s+(.+)$')
         self.__info__ = getProperty(body, r'^Info:\s+(.+)$')
         self.__extra_info__ = getProperty(body, r'^Additional Info:\s+(.+)$')
 
