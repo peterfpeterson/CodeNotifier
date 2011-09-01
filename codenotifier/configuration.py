@@ -88,7 +88,13 @@ def loadTestingConfig():
     print "Test program requires '%s' to exist" % filename
     return Configuration(filename, True)
 
+import unittest
+class ConfigurationTest(unittest.TestCase):
+    def testSetup(self):
+        config = loadTestingConfig()
+
 if __name__ == "__main__":
+    unittest.main()
     config = loadTestingConfig()
     print "***"
     print config
