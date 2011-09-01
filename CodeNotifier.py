@@ -87,7 +87,18 @@ def generateConfig(filename):
     handle.write("    return user\n")
     handle.close()
 
+def getProperty(text, regexp, retArray=False):
+    answer = re.findall(regexp, text, re.MULTILINE)
+    if len(answer) > 0:
+        # cleanup whitespace
+        answer = [re.sub(r'\s+', ' ', item) for item in answer]
+        answer = [item.strip() for item in answer]
 
+        if retArray:
+            return answer
+        else:
+            return answer[0]
+    return ""
 
 class WebError(Exception):
     def __init__(self, message, code=None):
@@ -203,7 +214,10 @@ class StatusMsg:
         '''This assumes that nothing compresible comes after the first link.'''
         if len(self.msg) < 140: # no need to shorten
             return
-        index = self.msg.index(r'http://bit.ly/')
+        try:
+            index = self.msg.index(r'http://bit.ly/')
+        except ValueError:
+            index = 140
         (msg, incomp) = (self.msg[:index].strip(), self.msg[index:].strip())
         msg = msg[:140-len(incomp)-1].strip()
         self.msg = "%s %s" % (msg, incomp)
@@ -434,15 +448,47 @@ class TracMsg(EmailMsg):
 class NagiosMsg(EmailMsg):
     def __init__(self, email_msg, **kwargs):
         EmailMsg.__init__(self, email_msg, **kwargs)
-        self.setMsg(self.__getSubject())
+        self.__initSubject()
+        self.__initBody()
+        status = [self.__subject__]
+        if len(self.__info__) > 0:
+            status.append(self.__info__)
+        if len(self.__extra_info__) > 0:
+            status.append(self.__extra_info__)
+        self.setMsg(" - ".join(status))
 
-    def __getSubject(self):
+    def __initSubject(self):
         subject = self.getSubject().strip()
         subject = re.sub(r'\s*\*+\s*', '', subject)
         subject = re.sub(r'\s+alert\s+-', ':', subject)
         subject = re.sub('/', ' ', subject)
 
-        return subject.strip()
+        self.__subject__ = subject.strip()
+
+    def __sanitize(self, text):
+        if len(text) <= 0:
+            return ""
+        if self.__host__ in text:
+            regexp = r'\(' + self.__host__ + r'.+\)'
+            text = re.sub(regexp, '', text)
+        return text.strip()
+
+    def __initBody(self):
+        body = self.getEmailBody()
+
+        # get all of the keys
+        self.__note_type__ = getProperty(body, r'^Notification Type:\s+(\w+)$')
+        self.__host__ = getProperty(body, r'^Host:\s+(\w+)$')
+        self.__state__ = getProperty(body, r'^State:\s+(\w+)$')
+        self.__address__ = getProperty(body, r'^Address:\s+(\w+)$')
+        self.__info__ = getProperty(body, r'^Info:\s+(.+)$')
+        self.__extra_info__ = getProperty(body, r'^Additional Info:\s+(.+)$')
+
+        # sanitize computer names to drop domains
+        if '.' in self.__host__:
+            self.__host__ = self.__host__.split('.')[0]
+        self.__info__ = self.__sanitize(self.__info__)
+        self.__extra_info__ = self.__sanitize(self.__extra_info__)
 
 class TsMsg(EmailMsg):
     def __init__(self, email_msg, **kwargs):
