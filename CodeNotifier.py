@@ -6,86 +6,7 @@ VERSION = "1.0"
 import email
 import re
 import sys
-
-def readConfig(filename, errorout=True):
-    import os
-    if os.path.exists(filename):
-        execfile(filename, __builtins__.globals())
-    else:
-        if errorout:
-            print "Cannot read configuration file", filename
-            print "Please configure the application"
-            sys.exit(-1)
-
-def getValueFromUser(config, key, query, default=None):
-    if config[key] is None or len(config[key]) <= 0:
-        if default is not None:
-            print "%s [%s] " % (query, default) ,
-        else:
-            print query, 
-
-        config[key] = sys.stdin.readline().strip()
-        if default is not None and len(config[key]) <= 0:
-            config[key] = default
-
-def generateConfig(filename):
-    # read the existing settings
-    readConfig(filename, False)
-    config = {}
-    try:
-        config['BITLY_USER'] = BITLY_USER
-    except NameError:
-        config['BITLY_USER'] = ''
-    try:
-        config['BITLY_KEY'] = BITLY_KEY
-    except NameError:
-        config['BITLY_KEY'] = ''
-    try:
-        config['TWIT_TOKEN'] = TWIT_TOKEN
-    except NameError:
-        config['TWIT_TOKEN'] = ''
-    try:
-        config['TWIT_SECRET'] = TWIT_SECRET
-    except NameError:
-        config['TWIT_SECRET'] = ''
-    try:
-        config['SVN_FS_ROOT'] = SVN_FS_ROOT
-    except NameError:
-        config['SVN_FS_ROOT'] = ''
-    try:
-        config['SVN_TRAC_FORMAT'] = SVN_TRAC_FORMAT
-    except NameError:
-        config['SVN_TRAC_FORMAT'] = ''
-
-    # get the bitly information
-    getValueFromUser(config, 'BITLY_USER', "bit.ly username: ")
-    getValueFromUser(config, 'BITLY_KEY',
-                     "api key from 'http://bit.ly/a/account': ")
-
-    # get the twitter information
-    from oauthtwitter import OAuthApi
-    twitter = OAuthApi(APP_KEY, APP_SECRET)
-    temp_creds = twitter.getRequestToken()
-    print "visit '%s' and write the pin:" % twitter.getAuthorizationURL(temp_creds)
-    oauth_verifier = sys.stdin.readline().strip()
-    access_token = twitter.getAccessToken(temp_creds, oauth_verifier)
-    config['TWIT_TOKEN'] = access_token['oauth_token']
-    config['TWIT_SECRET'] = access_token['oauth_token_secret']
-
-    # get the svn information
-    getValueFromUser(config, 'SVN_FS_ROOT', "Root directory for svn: ", '/svn/')
-    getValueFromUser(config, 'SVN_TRAC_FORMAT', "Format for trac svn urls: ",
-                    "http://trac.edgewall.org/changeset/%d")
-
-    # write out the configuration
-    handle = open(filename, 'w')
-    keys = config.keys()
-    keys.sort()
-    for key in keys:
-        handle.write("%s='%s'\n" % (key, config[key]))
-    handle.write("def normalizeUser(user):\n")
-    handle.write("    return user\n")
-    handle.close()
+from codenotifier import *
 
 def getProperty(text, regexp, retArray=False):
     answer = re.findall(regexp, text, re.MULTILINE)
@@ -111,132 +32,9 @@ class WebError(Exception):
         else:
             return self.__msg__
 
-def composeUrl(base, params):
-    import urllib
-    return "%s%s" % (base, urllib.urlencode(params))
-
-def fetchUrl(url):
-    import urllib
-    url_data = urllib.urlopen(url).read()
-    if url_data == None or len(url_data) <= 0:
-        raise WebError("URL read failed to return anything")
-    import simplejson
-    return simplejson.loads(url_data)
-
-FLATHEAD = "flathead"
-
-def getTags(links, tags=[]):
-    if links is None:
-        return []
-    links = [link.longurl for link in links]
-    for link in links:
-        if FLATHEAD in link:
-            TRAC = r'/trac'
-            start = link.index(TRAC)+ len(TRAC) + 1
-            stop = link.index(r'/', start)
-            tags.append("#%s" % link[start:stop])
-        if "ticket" in link:
-            tags.append("trac")
-        if "changeset" in link:
-            tags.append("svn")
-    return ' '.join(tags)
-
-class BitlyUrl:
-    def __init__(self, longurl, debug=0):
-        self.debug = debug
-        if longurl is None or len(longurl) <= 0:
-            raise RuntimeError("Cannot shorten empty string")
-        self.longurl = longurl
-        self.shorturl = self.__shortenUrl()
-    def __shortenUrl(self):
-        if self.debug > 1:
-            return self.longurl
-
-        resturl = composeUrl("http://api.bit.ly/v3/shorten?",
-                             {"longUrl":self.longurl,
-                              "format":"json",
-                              "login":BITLY_USER,
-                              "apiKey":BITLY_KEY})
-        data = fetchUrl(resturl)
-        self.__checkError(data)
-        return data['data']['url']
-
-    def __checkError(self, data):
-        if data.get('status_code') == 200:
-            return
-        if data.get('status_txt') == 'OK':
-            return
-        raise WebError(data.get('status_txt'), data.get('status_code'))
-
-    def __str__(self):
-        return self.shorturl
-
-    def __repr__(self):
-        return self.shorturl
-
-    def __len__(self):
-        return len(self.shorturl)
-
-APP_KEY=r'pfAHwsfJxkyzR25oLw13VQ'
-APP_SECRET=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c'
-
-class StatusMsg:
-    def __init__(self, status=None, **kwargs):
-        # get the various keys from the kwargs list
-        self.debug = kwargs.get('debug', 0)
-        app_key = kwargs.get("app_key", APP_KEY)
-        app_secret = kwargs.get("app_secret", APP_SECRET)
-        user_key = kwargs.get("user_key", TWIT_TOKEN)
-        user_secret = kwargs.get("user_secret", TWIT_SECRET)
-
-        from oauthtwitter import OAuthApi
-        self.__twitter = OAuthApi(app_key, app_secret, user_key, user_secret)
-        if status is not None:
-            self.setMsg(status)
-
-    def setMsg(self, status, tags=[]):
-        self.msg = status
-        if len(self.msg) <= 0:
-            return
-        self.__processLinks(tags)
-        self.__abbridgeMsg()
-        self.msg = self.msg.strip()
-        
-    def __processLinks(self, tags):
-        self.links = re.findall(r'https?://.+$', self.msg)
-        self.links = [BitlyUrl(link, debug=self.debug) for link in self.links]
-        for link in self.links:
-            self.msg = self.msg.replace(link.longurl, link.shorturl)
-        self.tags = getTags(self.links, tags)
-        self.msg = ' '.join((self.msg, self.tags))
-
-    def __abbridgeMsg(self):
-        '''This assumes that nothing compresible comes after the first link.'''
-        if len(self.msg) < 140: # no need to shorten
-            return
-        try:
-            index = self.msg.index(r'http://bit.ly/')
-        except ValueError:
-            index = 140
-        (msg, incomp) = (self.msg[:index].strip(), self.msg[index:].strip())
-        msg = msg[:140-len(incomp)-1].strip()
-        self.msg = "%s %s" % (msg, incomp)
-
-    def __str__(self):
-        return self.msg
-
-    def send(self):
-        if (self.msg is not None) and (len(self.msg) > 0):
-            import urllib2
-            try:
-                return self.__twitter.UpdateStatus(self.msg)
-            except urllib2.HTTPError, e:
-                print "Update '%s' failed. Reason '%s'" % (self.msg, e.info)
-                raise
-
 class SvnMsg(StatusMsg):
-    def __init__(self, repos, rev, **kwargs):
-        StatusMsg.__init__(self, **kwargs)
+    def __init__(self, config, repos, rev, **kwargs):
+        StatusMsg.__init__(self, config, **kwargs)
         self.__getCommit(repos, rev)
 
     def svnlook(self, indicator, changeset, command):
@@ -273,8 +71,8 @@ class SvnMsg(StatusMsg):
         return len(tickets) > 0
 
 class EmailMsg(StatusMsg):
-    def __init__(self, email_msg, **kwargs):
-        StatusMsg.__init__(self, **kwargs)
+    def __init__(self, config, email_msg, **kwargs):
+        StatusMsg.__init__(self, config, **kwargs)
         self.__email_msg__ = email_msg
 
     def getSubject(self):
@@ -299,15 +97,16 @@ class EmailMsg(StatusMsg):
             raise RuntimeError("Failed to understand encoding '%s'" % encoding)
 
 class TracMsg(EmailMsg):
-    def __init__(self, email_msg, **kwargs):
-        EmailMsg.__init__(self, email_msg, **kwargs)
+    def __init__(self, config, email_msg, **kwargs):
+        EmailMsg.__init__(self, config, email_msg, **kwargs)
+        self.normalizeUser = config.normalizeUser
         text = self.getEmailBody()
         result = []
 
         # get all of the information
         author = self.__getAuthor(text)
         if len(author) > 0:
-            result.append(normalizeUser(author))
+            result.append(self.normalizeUser(author))
         log = self.__getLog(text)
         if " [127.0.0.1])" in log:
             log = ""
@@ -446,8 +245,8 @@ class TracMsg(EmailMsg):
         return None
 
 class NagiosMsg(EmailMsg):
-    def __init__(self, email_msg, **kwargs):
-        EmailMsg.__init__(self, email_msg, **kwargs)
+    def __init__(self, config, email_msg, **kwargs):
+        EmailMsg.__init__(self, config, email_msg, **kwargs)
         self.__initSubject()
         self.__initBody()
         status = [self.__subject__]
@@ -492,8 +291,8 @@ class NagiosMsg(EmailMsg):
         self.__extra_info__ = self.__sanitize(self.__extra_info__)
 
 class TsMsg(EmailMsg):
-    def __init__(self, email_msg, **kwargs):
-        EmailMsg.__init__(self, email_msg, **kwargs)
+    def __init__(self, config, email_msg, **kwargs):
+        EmailMsg.__init__(self, config, email_msg, **kwargs)
 
         # deal with the subject line
         self.setHost()
@@ -590,24 +389,25 @@ if __name__ == "__main__":
         parser.error(modes_error)
 
     if "config" in args:
-        generateConfig(options.config)
+        config = Configuration(options.config)
+        config.generate()
         sys.exit(0)
 
-    readConfig(options.config)
+    config = Configuration(options.config)
     if args[0] == "svn":
         (repos, rev) = args[1:]
-        msg = SvnMsg(repos, rev, debug=options.debug)
+        msg = SvnMsg(config, repos, rev, debug=options.debug)
     elif args[0] == "trac":
         email_msg = email.message_from_file(sys.stdin)
-        msg = TracMsg(email_msg)
+        msg = TracMsg(config, email_msg)
     elif args[0] == "nagios":
         email_msg = email.message_from_file(sys.stdin)
-        msg = NagiosMsg(email_msg)
+        msg = NagiosMsg(config, email_msg)
     elif args[0] == "text":
-        msg = StatusMsg(' '.join(args[1:]))
+        msg = StatusMsg(config, ' '.join(args[1:]))
     elif args[0] == "ts":
         email_msg = email.message_from_file(sys.stdin)
-        msg = TsMsg(email_msg)
+        msg = TsMsg(config, email_msg)
     else:
         parser.error(modes_error + " (found '" + args[0] + "')")
 

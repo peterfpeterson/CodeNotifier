@@ -1,8 +1,8 @@
 import re
 from bitlyurl import BitlyUrl
+FLATHEAD = "flathead"
 
 class StatusMsg:
-    FLATHEAD = "flathead"
 
     def __init__(self, config, status=None, **kwargs):
         self.__config = config # cache for later
@@ -23,7 +23,7 @@ class StatusMsg:
             return []
         self.links = [link.longurl for link in self.links]
         for link in self.links:
-            if StatusMsg.FLATHEAD in link:
+            if FLATHEAD in link:
                 TRAC = r'/trac'
                 start = link.index(TRAC)+ len(TRAC) + 1
                 stop = link.index(r'/', start)
