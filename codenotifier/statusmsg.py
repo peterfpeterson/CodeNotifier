@@ -1,9 +1,11 @@
 import re
+from bitlyurl import BitlyUrl
 
 class StatusMsg:
     FLATHEAD = "flathead"
 
     def __init__(self, config, status=None, **kwargs):
+        self.__config = config # cache for later
         # get the various keys from the kwargs list
         self.debug = kwargs.get('debug', 0)
         app_key = kwargs.get("app_key", config.APP_KEY)
@@ -21,7 +23,7 @@ class StatusMsg:
             return []
         self.links = [link.longurl for link in self.links]
         for link in self.links:
-            if FLATHEAD in link:
+            if StatusMsg.FLATHEAD in link:
                 TRAC = r'/trac'
                 start = link.index(TRAC)+ len(TRAC) + 1
                 stop = link.index(r'/', start)
@@ -42,7 +44,7 @@ class StatusMsg:
         
     def __processLinks(self, tags):
         self.links = re.findall(r'https?://.+$', self.msg)
-        self.links = [BitlyUrl(link, debug=self.debug) for link in self.links]
+        self.links = [BitlyUrl(self.__config, link, debug=self.debug) for link in self.links]
         for link in self.links:
             self.msg = self.msg.replace(link.longurl, link.shorturl)
         self.tags = self.getTags(tags)
@@ -71,3 +73,11 @@ class StatusMsg:
             except urllib2.HTTPError, e:
                 print "Update '%s' failed. Reason '%s'" % (self.msg, e.info)
                 raise
+
+if __name__ == "__main__":
+    from configuration import Configuration
+    filename = "../CodeNotifier_config.py"
+    config = Configuration(filename, True)
+    print StatusMsg(config, "testing 1,2,3")
+    print StatusMsg(config, "bob likes http://twitter.com")
+    print StatusMsg(config, "bob likes really long strings that are far above 140 characters and go on and on into nothingness because he has nothing meaningful to say. http://twitter.com")
