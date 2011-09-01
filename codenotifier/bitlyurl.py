@@ -49,3 +49,6 @@ class BitlyUrl:
 
     def __len__(self):
         return len(self.shorturl)
+
+if __name__ == "__main__":
+    print "There is no testing"

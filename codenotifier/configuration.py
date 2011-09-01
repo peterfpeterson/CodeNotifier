@@ -83,10 +83,13 @@ class Configuration:
     APP_KEY = property(lambda self: self.__APP_KEY)
     APP_SECRET = property(lambda self: self.__APP_SECRET)
 
-if __name__ == "__main__":
+def loadTestingConfig():
     filename = "../CodeNotifier_config.py"
     print "Test program requires '%s' to exist" % filename
-    config = Configuration(filename, True)
+    return Configuration(filename, True)
+
+if __name__ == "__main__":
+    config = loadTestingConfig()
     print "***"
     print config
     print "***", config.SVN_FS_ROOT

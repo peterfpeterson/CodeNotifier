@@ -75,9 +75,8 @@ class StatusMsg:
                 raise
 
 if __name__ == "__main__":
-    from configuration import Configuration
-    filename = "../CodeNotifier_config.py"
-    config = Configuration(filename, True)
+    from configuration import loadTestingConfig
+    config = loadTestingConfig()
     print StatusMsg(config, "testing 1,2,3")
     print StatusMsg(config, "bob likes http://twitter.com")
     print StatusMsg(config, "bob likes really long strings that are far above 140 characters and go on and on into nothingness because he has nothing meaningful to say. http://twitter.com")

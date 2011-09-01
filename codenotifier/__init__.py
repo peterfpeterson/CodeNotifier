@@ -1,2 +1,2 @@
-from statusmsg import *
-from configuration import *
+from statusmsg import StatusMsg
+from configuration import Configuration
