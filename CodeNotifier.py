@@ -376,8 +376,7 @@ if __name__ == "__main__":
         email_msg = email.message_from_file(sys.stdin)
         msg = TracMsg(config, email_msg)
     elif args[0] == "nagios":
-        email_msg = email.message_from_file(sys.stdin)
-        msg = NagiosMsg(config, email_msg)
+        msg = NagiosMsg(config, sys.stdin)
     elif args[0] == "text":
         msg = StatusMsg(config, ' '.join(args[1:]))
     elif args[0] == "ts":

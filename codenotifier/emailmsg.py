@@ -3,7 +3,7 @@ import email
 
 class EmailMsg:
     def __init__(self, email_msg, **kwargs):
-        emailFrom = kwargs.get("emailFrom", None)
+        emailFrom = kwargs.get("emailFrom", "file")
         if emailFrom is None:
             self.__email_msg__ = email_msg
         elif emailFrom == "string":
