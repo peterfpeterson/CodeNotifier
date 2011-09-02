@@ -21,17 +21,6 @@ def getProperty(text, regexp, retArray=False):
             return answer[0]
     return ""
 
-class WebError(Exception):
-    def __init__(self, message, code=None):
-        self.__msg__ = message
-        self.__code__ = code
-
-    def __str__(self):
-        if self.__code__ is not None:
-            return "[%s] %s" % (self.__code__, self.__msg__)
-        else:
-            return self.__msg__
-
 class SvnMsg(StatusMsg):
     def __init__(self, config, repos, rev, **kwargs):
         StatusMsg.__init__(self, config, **kwargs)

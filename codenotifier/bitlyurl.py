@@ -1,6 +1,17 @@
 import urllib
 import simplejson
 
+class WebError(Exception):
+    def __init__(self, message, code=None):
+        self.__msg__ = message
+        self.__code__ = code
+
+    def __str__(self):
+        if self.__code__ is not None:
+            return "[%s] %s" % (self.__code__, self.__msg__)
+        else:
+            return self.__msg__
+
 class BitlyUrl:
     def __init__(self, config, longurl, debug=0):
         self.debug = debug
