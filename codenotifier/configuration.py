@@ -6,6 +6,7 @@ class Configuration:
         self.__config__ = {}
         self.__APP_KEY=r'pfAHwsfJxkyzR25oLw13VQ'
         self.__APP_SECRET=r'ANihRKuKtubyhH4PZsZIHOVNNoxWomKJeSuOAdodH8c'
+        self.normalizeUser = lambda user: user
         if os.path.exists(filename):
             result = {}
             execfile(filename, result)
@@ -17,7 +18,7 @@ class Configuration:
             self.normalizeUser = result.get('normalizeUser', lambda user: user)
         else:
             if errorout:
-                print "Cannot read configuration file", filename
+                print "Cannot read configuration file '%s'" % filename
                 print "Please configure the application"
                 sys.exit(-1)
 
@@ -73,31 +74,11 @@ class Configuration:
         return "\n".join(result)
 
     # declare all of the properties
-    SVN_FS_ROOT = property(lambda self: self.__config__['SVN_FS_ROOT'])
-    BITLY_USER = property(lambda self: self.__config__['BITLY_USER'])
-    BITLY_KEY = property(lambda self: self.__config__['BITLY_KEY'])
-    TWIT_TOKEN = property(lambda self: self.__config__['TWIT_TOKEN'])
-    TWIT_SECRET = property(lambda self: self.__config__['TWIT_SECRET'])
-    SVN_FS_ROOT = property(lambda self: self.__config__['SVN_FS_ROOT'])
-    SVN_TRAC_FORMAT = property(lambda self: self.__config__['SVN_TRAC_FORMAT'])
+    BITLY_USER = property(lambda self: self.__config__.get('BITLY_USER', ''))
+    BITLY_KEY = property(lambda self: self.__config__.get('BITLY_KEY', ''))
+    TWIT_TOKEN = property(lambda self: self.__config__.get('TWIT_TOKEN', ''))
+    TWIT_SECRET = property(lambda self: self.__config__.get('TWIT_SECRET', ''))
+    SVN_FS_ROOT = property(lambda self: self.__config__.get('SVN_FS_ROOT', ''))
+    SVN_TRAC_FORMAT = property(lambda self: self.__config__.get('SVN_TRAC_FORMAT', ''))
     APP_KEY = property(lambda self: self.__APP_KEY)
     APP_SECRET = property(lambda self: self.__APP_SECRET)
-
-def loadTestingConfig():
-    filename = "../CodeNotifier_config.py"
-    print "Test program requires '%s' to exist" % filename
-    return Configuration(filename, True)
-
-import unittest
-class ConfigurationTest(unittest.TestCase):
-    def testSetup(self):
-        config = loadTestingConfig()
-
-if __name__ == "__main__":
-    unittest.main()
-    config = loadTestingConfig()
-    print "***"
-    print config
-    print "***", config.SVN_FS_ROOT
-    print "***", config.APP_KEY
-    print "***", config.normalizeUser('bob')
