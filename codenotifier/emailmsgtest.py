@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from emailmsg import EmailMsg
-from configurationtest import loadTestingConfig
 import unittest
 
 EMAIL_TEXT = """                                                                                                                                                                                                                                                              
@@ -27,8 +26,7 @@ stuffy stuff
 
 class EmailMsgTest(unittest.TestCase):
     def setUp(self):
-        config = loadTestingConfig()
-        self.msg = EmailMsg(config, EMAIL_TEXT, emailFrom="string")
+        self.msg = EmailMsg(EMAIL_TEXT, emailFrom="string")
 
     def testSubject(self):
         self.assertEquals(self.msg.subject, "Really important email")
@@ -43,7 +41,7 @@ class EmailMsgTest(unittest.TestCase):
         self.assertEquals(self.msg.encoding, "quoted-printable")
 
     def testBody(self):
-        self.assertEquals(self.msg.body.strip(), "stuffy stuff")
+        self.assertEquals(self.msg.body, "stuffy stuff")
 
 if __name__ == "__main__":
     unittest.main()

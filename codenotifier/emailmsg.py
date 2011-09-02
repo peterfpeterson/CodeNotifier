@@ -1,9 +1,8 @@
 from statusmsg import StatusMsg
 import email
 
-class EmailMsg(StatusMsg):
-    def __init__(self, config, email_msg, **kwargs):
-        StatusMsg.__init__(self, config, **kwargs)
+class EmailMsg:
+    def __init__(self, email_msg, **kwargs):
         emailFrom = kwargs.get("emailFrom", None)
         if emailFrom is None:
             self.__email_msg__ = email_msg
@@ -14,7 +13,7 @@ class EmailMsg(StatusMsg):
         else:
             raise RuntimeError("Do not know how to initialize from '%s'" % emailFrom)
 
-        self.body = self.getEmailBody()
+        self.body = self.__getEmailBody().strip()
 
     def __getValue(self, key, default=""):
         if key in self.__email_msg__.keys():
@@ -22,10 +21,7 @@ class EmailMsg(StatusMsg):
         else:
             return default
 
-    def getSubject(self):
-        return self.subject
-
-    def getEmailBody(self):
+    def __getEmailBody(self):
         encoding = self.encoding
         body = self.__email_msg__.get_payload()
         if encoding == 'quoted-printable':
@@ -45,4 +41,3 @@ class EmailMsg(StatusMsg):
     sender = property(lambda self: self.__getValue('From'))
     encoding = property(lambda self: self.__getValue('Content-Transfer-Encoding',
                                                      'quoted-printable'))
-    #body = property(lambda self: self.getEmailBody())
