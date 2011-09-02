@@ -8,19 +8,6 @@ import re
 import sys
 from codenotifier import *
 
-def getProperty(text, regexp, retArray=False):
-    answer = re.findall(regexp, text, re.MULTILINE)
-    if len(answer) > 0:
-        # cleanup whitespace
-        answer = [re.sub(r'\s+', ' ', item) for item in answer]
-        answer = [item.strip() for item in answer]
-
-        if retArray:
-            return answer
-        else:
-            return answer[0]
-    return ""
-
 class SvnMsg(StatusMsg):
     def __init__(self, config, repos, rev, **kwargs):
         StatusMsg.__init__(self, config, **kwargs)

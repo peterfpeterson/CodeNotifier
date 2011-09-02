@@ -2,8 +2,20 @@ import re
 from bitlyurl import BitlyUrl
 FLATHEAD = "flathead"
 
-class StatusMsg:
+def getProperty(text, regexp, retArray=False):
+    answer = re.findall(regexp, text, re.MULTILINE)
+    if len(answer) > 0:
+        # cleanup whitespace
+        answer = [re.sub(r'\s+', ' ', item) for item in answer]
+        answer = [item.strip() for item in answer]
 
+        if retArray:
+            return answer
+        else:
+            return answer[0]
+    return ""
+
+class StatusMsg:
     def __init__(self, config, status=None, **kwargs):
         self.__config = config # cache for later
         # get the various keys from the kwargs list
