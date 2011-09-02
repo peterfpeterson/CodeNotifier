@@ -218,9 +218,10 @@ class TracMsg(EmailMsg):
         # give up
         return None
 
-class NagiosMsg(EmailMsg):
+class NagiosMsg(StatusMsg):
     def __init__(self, config, email_msg, **kwargs):
-        EmailMsg.__init__(self, config, email_msg, **kwargs)
+        StatusMsg.__init__(self, config, **kwargs)
+        self.__email = EmailMsg(email_msg)
         self.__initSubject()
         self.__initBody()
         status = [self.__subject__]
@@ -231,7 +232,7 @@ class NagiosMsg(EmailMsg):
         self.setMsg(" - ".join(status))
 
     def __initSubject(self):
-        subject = self.getSubject().strip()
+        subject = self.__email.subject
         subject = re.sub(r'\s*\*+\s*', '', subject)
         subject = re.sub(r'\s+alert\s+-', ':', subject)
         subject = re.sub('/', ' ', subject)
@@ -247,7 +248,7 @@ class NagiosMsg(EmailMsg):
         return text.strip()
 
     def __initBody(self):
-        body = self.getEmailBody()
+        body = self.__email.body
 
         # get all of the keys
         self.__note_type__ = getProperty(body, r'^Notification Type:\s+(\w+)$')
@@ -290,7 +291,7 @@ class TsMsg(EmailMsg):
             self.__host = host
 
     def __parseSubject(self):
-        subject = self.getSubject().strip()
+        subject = self.subject
         if len(subject.strip()) <= 0:
             return ""
 
