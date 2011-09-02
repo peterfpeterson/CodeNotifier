@@ -70,32 +70,6 @@ class SvnMsg(StatusMsg):
         tickets = re.findall(r'#\d+', log)
         return len(tickets) > 0
 
-class EmailMsg(StatusMsg):
-    def __init__(self, config, email_msg, **kwargs):
-        StatusMsg.__init__(self, config, **kwargs)
-        self.__email_msg__ = email_msg
-
-    def getSubject(self):
-        if 'Subject' in self.__email_msg__.keys():
-            return self.__email_msg__['Subject'].strip()
-        else:
-            return ""
-
-    def getEmailBody(self):
-        encoding = self.__email_msg__.get('Content-Transfer-Encoding',
-                                          'quoted-printable')
-        if encoding == 'quoted-printable':
-            return email_msg.as_string()
-        elif encoding == "base64":
-            import base64
-            return base64.decodestring(email_msg.get_payload())
-        elif encoding == "7bit":
-            return email_msg.as_string()
-        elif encoding == "8bit":
-            return email_msg.as_string()
-        else:
-            raise RuntimeError("Failed to understand encoding '%s'" % encoding)
-
 class TracMsg(EmailMsg):
     def __init__(self, config, email_msg, **kwargs):
         EmailMsg.__init__(self, config, email_msg, **kwargs)
