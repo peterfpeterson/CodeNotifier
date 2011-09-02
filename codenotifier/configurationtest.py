@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from configuration import Configuration
 
 def loadTestingConfig():

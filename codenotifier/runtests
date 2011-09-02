@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+
+import unittest
+from configurationtest import ConfigurationTest
+
+def suite():
+    suite = []
+    suite.append(unittest.TestLoader().loadTestsFromTestCase(ConfigurationTest))
+    return unittest.TestSuite(suite)
+
+if __name__ == "__main__":
+    unittest.main()
